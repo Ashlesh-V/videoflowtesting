@@ -64,16 +64,27 @@ set -euo pipefail
 
 APP_ROOT="$(cd "$(dirname "$0")/../Resources/app" && pwd)"
 PYTHON="$APP_ROOT/.venv/bin/python"
+PYTHON_CMD=("$PYTHON")
 LOG_DIR="$APP_ROOT/logs"
 HOME_DIR="$APP_ROOT/.home"
 mkdir -p "$LOG_DIR" "$HOME_DIR"
+LAUNCHER_LOG="$LOG_DIR/launcher.log"
+touch "$LAUNCHER_LOG"
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] Starting VideoFlow launcher" >> "$LAUNCHER_LOG"
+echo "APP_ROOT=$APP_ROOT" >> "$LAUNCHER_LOG"
 
 if [ ! -x "$PYTHON" ]; then
+  echo "Bundled Python missing: $PYTHON" >> "$LAUNCHER_LOG"
   osascript -e 'display dialog "VideoFlow could not find its bundled Python environment." buttons {"OK"} default button "OK" with icon stop'
   exit 1
 fi
 
-PORT="$("$PYTHON" - <<'PY'
+if [ "$(sysctl -n hw.optional.arm64 2>/dev/null || echo 0)" = "1" ] && command -v arch >/dev/null 2>&1; then
+  PYTHON_CMD=(arch -arm64 "$PYTHON")
+fi
+echo "Python command: ${PYTHON_CMD[*]}" >> "$LAUNCHER_LOG"
+
+PORT="$("${PYTHON_CMD[@]}" - <<'PY'
 import socket
 for port in range(8501, 8600):
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
@@ -90,9 +101,12 @@ PY
 URL="http://127.0.0.1:$PORT"
 export HOME="$HOME_DIR"
 export PYTHONPATH="$APP_ROOT${PYTHONPATH:+:$PYTHONPATH}"
+export NO_PROXY="127.0.0.1,localhost${NO_PROXY:+,$NO_PROXY}"
+export no_proxy="127.0.0.1,localhost${no_proxy:+,$no_proxy}"
 
 cd "$APP_ROOT"
-"$PYTHON" -m streamlit run "$APP_ROOT/webui/Main.py" \
+echo "Selected URL: $URL" >> "$LAUNCHER_LOG"
+"${PYTHON_CMD[@]}" -m streamlit run "$APP_ROOT/webui/Main.py" \
   --server.address=127.0.0.1 \
   --server.port="$PORT" \
   --browser.serverAddress=127.0.0.1 \
@@ -103,15 +117,22 @@ cd "$APP_ROOT"
   >> "$LOG_DIR/videoflow.log" 2>&1 &
 
 SERVER_PID=$!
+export SERVER_PID
+echo "Streamlit PID: $SERVER_PID" >> "$LAUNCHER_LOG"
 trap 'kill "$SERVER_PID" 2>/dev/null || true' INT TERM EXIT
 
-if "$PYTHON" - "$URL" <<'PY'
+if "${PYTHON_CMD[@]}" - "$URL" <<'PY'
+import os
 import sys
 import time
 import urllib.request
 
 url = sys.argv[1]
-for _ in range(60):
+for _ in range(180):
+    try:
+        os.kill(int(os.environ["SERVER_PID"]), 0)
+    except Exception:
+        raise SystemExit(2)
     try:
         with urllib.request.urlopen(url, timeout=0.5) as response:
             if response.status < 500:
@@ -121,8 +142,11 @@ for _ in range(60):
 raise SystemExit(1)
 PY
 then
+  echo "Server responded, opening $URL" >> "$LAUNCHER_LOG"
   open "$URL"
 else
+  status=$?
+  echo "Server did not respond, health-check status $status" >> "$LAUNCHER_LOG"
   osascript -e 'display dialog "VideoFlow started but the local web page did not respond. Check logs/videoflow.log inside the app package." buttons {"OK"} default button "OK" with icon caution'
 fi
 

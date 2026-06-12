@@ -1,5 +1,5 @@
 <div align="center">
-<h1 align="center">MoneyPrinterTurbo 💸</h1>
+<h1 align="center">VideoFlow 🎬</h1>
 
 <p align="center">
   <a href="https://github.com/harry0703/MoneyPrinterTurbo/stargazers"><img src="https://img.shields.io/github/stars/harry0703/MoneyPrinterTurbo.svg?style=for-the-badge" alt="Stargazers"></a>
@@ -16,6 +16,8 @@
 
 Simply provide a <b>topic</b> or <b>keyword</b> for a video, and it will automatically generate the video copy, video
 materials, video subtitles, and video background music before synthesizing a high-definition short video.
+<br>
+This project is customized from <a href="https://github.com/harry0703/MoneyPrinterTurbo">MoneyPrinterTurbo</a> under the original MIT License.
 
 ### WebUI
 

@@ -1,5 +1,5 @@
 <div align="center">
-<h1 align="center">MoneyPrinterTurbo 💸</h1>
+<h1 align="center">VideoFlow 🎬</h1>
 
 <p align="center">
   <a href="https://github.com/harry0703/MoneyPrinterTurbo/stargazers"><img src="https://img.shields.io/github/stars/harry0703/MoneyPrinterTurbo.svg?style=for-the-badge" alt="Stargazers"></a>
@@ -15,6 +15,8 @@
 
 <br>
 只需提供一个视频 <b>主题</b> 或 <b>关键词</b> ，就可以全自动生成视频文案、视频素材、视频字幕、视频背景音乐，然后合成一个高清的短视频。
+<br>
+本项目基于 <a href="https://github.com/harry0703/MoneyPrinterTurbo">MoneyPrinterTurbo</a> 改造，遵循原项目 MIT License。
 <br>
 
 <h4>Web界面</h4>

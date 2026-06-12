@@ -1,3 +1,6 @@
+project_name = "VideoFlow"
+project_description = "Personal short-video generation workflow based on MoneyPrinterTurbo."
+
 [app]
 video_source = "pexels" # "pexels" or "pixabay"
 

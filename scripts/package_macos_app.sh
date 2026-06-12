@@ -62,7 +62,23 @@ cat > "$MACOS_DIR/$APP_NAME" <<'LAUNCHER'
 #!/usr/bin/env bash
 set -euo pipefail
 
-APP_ROOT="$(cd "$(dirname "$0")/../Resources/app" && pwd)"
+APP_BUNDLE_ROOT="$(cd "$(dirname "$0")/../Resources/app" && pwd)"
+USER_HOME="${HOME:-$(/usr/bin/dscl . -read "/Users/$(whoami)" NFSHomeDirectory 2>/dev/null | awk '{print $2}')}"
+DATA_ROOT="$USER_HOME/Library/Application Support/VideoFlow"
+APP_ROOT="$DATA_ROOT/app"
+mkdir -p "$APP_ROOT"
+
+rsync -a --delete \
+  --exclude 'config.toml' \
+  --exclude '/logs/' \
+  --exclude '/storage/' \
+  --exclude '/.home/' \
+  "$APP_BUNDLE_ROOT/" "$APP_ROOT/"
+
+if [ ! -f "$APP_ROOT/config.toml" ]; then
+  cp "$APP_BUNDLE_ROOT/config.toml" "$APP_ROOT/config.toml"
+fi
+
 PYTHON="$APP_ROOT/.venv/bin/python"
 PYTHON_CMD=("$PYTHON")
 LOG_DIR="$APP_ROOT/logs"
@@ -71,6 +87,7 @@ mkdir -p "$LOG_DIR" "$HOME_DIR"
 LAUNCHER_LOG="$LOG_DIR/launcher.log"
 touch "$LAUNCHER_LOG"
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] Starting VideoFlow launcher" >> "$LAUNCHER_LOG"
+echo "APP_BUNDLE_ROOT=$APP_BUNDLE_ROOT" >> "$LAUNCHER_LOG"
 echo "APP_ROOT=$APP_ROOT" >> "$LAUNCHER_LOG"
 
 if [ ! -x "$PYTHON" ]; then

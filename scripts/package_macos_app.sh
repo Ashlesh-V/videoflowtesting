@@ -5,6 +5,8 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 APP_NAME="VideoFlow"
 DIST_DIR="$ROOT_DIR/dist"
 APP_DIR="$DIST_DIR/$APP_NAME.app"
+PACKAGE_DIR="$DIST_DIR/VideoFlow-mac"
+ZIP_FILE="$DIST_DIR/VideoFlow-mac.zip"
 CONTENTS_DIR="$APP_DIR/Contents"
 MACOS_DIR="$CONTENTS_DIR/MacOS"
 RESOURCES_DIR="$CONTENTS_DIR/Resources"
@@ -172,5 +174,36 @@ LAUNCHER
 
 chmod +x "$MACOS_DIR/$APP_NAME"
 
+rm -rf "$PACKAGE_DIR" "$ZIP_FILE"
+mkdir -p "$PACKAGE_DIR"
+rsync -a "$APP_DIR" "$PACKAGE_DIR/"
+cat > "$PACKAGE_DIR/README.txt" <<'README'
+VideoFlow macOS test build
+
+How to run:
+1. Double-click VideoFlow.app.
+2. The first launch may take 20-60 seconds while the app prepares its local runtime.
+3. Your browser should open automatically at http://127.0.0.1:8501.
+4. If it does not open, try http://127.0.0.1:8501 manually.
+
+First-time setup:
+- Enter your own OpenAI API Key.
+- Enter your own Pexels API Key.
+- Do not share API keys with other people.
+
+macOS security note:
+- If macOS blocks the app because it is from an unidentified developer, right-click VideoFlow.app, choose Open, then confirm Open.
+
+Local data:
+- Runtime files, settings, and logs are stored in:
+  ~/Library/Application Support/VideoFlow
+README
+
+(
+  cd "$DIST_DIR"
+  ditto -c -k --sequesterRsrc --keepParent "VideoFlow-mac" "$ZIP_FILE"
+)
+
 echo "Created $APP_DIR"
+echo "Created $ZIP_FILE"
 echo "Double-click it, or run: open \"$APP_DIR\""

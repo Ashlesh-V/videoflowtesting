@@ -92,8 +92,7 @@ export HOME="$HOME_DIR"
 export PYTHONPATH="$APP_ROOT${PYTHONPATH:+:$PYTHONPATH}"
 
 cd "$APP_ROOT"
-open "$URL"
-exec "$PYTHON" -m streamlit run "$APP_ROOT/webui/Main.py" \
+"$PYTHON" -m streamlit run "$APP_ROOT/webui/Main.py" \
   --server.address=127.0.0.1 \
   --server.port="$PORT" \
   --browser.serverAddress=127.0.0.1 \
@@ -101,7 +100,33 @@ exec "$PYTHON" -m streamlit run "$APP_ROOT/webui/Main.py" \
   --server.headless=true \
   --server.showEmailPrompt=false \
   --server.enableCORS=true \
-  >> "$LOG_DIR/videoflow.log" 2>&1
+  >> "$LOG_DIR/videoflow.log" 2>&1 &
+
+SERVER_PID=$!
+trap 'kill "$SERVER_PID" 2>/dev/null || true' INT TERM EXIT
+
+if "$PYTHON" - "$URL" <<'PY'
+import sys
+import time
+import urllib.request
+
+url = sys.argv[1]
+for _ in range(60):
+    try:
+        with urllib.request.urlopen(url, timeout=0.5) as response:
+            if response.status < 500:
+                raise SystemExit(0)
+    except Exception:
+        time.sleep(0.5)
+raise SystemExit(1)
+PY
+then
+  open "$URL"
+else
+  osascript -e 'display dialog "VideoFlow started but the local web page did not respond. Check logs/videoflow.log inside the app package." buttons {"OK"} default button "OK" with icon caution'
+fi
+
+wait "$SERVER_PID"
 LAUNCHER
 
 chmod +x "$MACOS_DIR/$APP_NAME"
